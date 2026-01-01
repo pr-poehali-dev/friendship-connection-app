@@ -49,6 +49,33 @@ type Reward = {
   pointsCost: number;
 };
 
+type CharacterItem = {
+  id: string;
+  name: string;
+  type: 'outfit' | 'accessory' | 'background' | 'effect';
+  icon: string;
+  color: string;
+  pointsCost: number;
+  levelRequired: number;
+  description: string;
+  owned: boolean;
+  equipped: boolean;
+};
+
+type PlayerCharacter = {
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
+  totalMeetings: number;
+  totalHoursOffline: number;
+  equippedItems: {
+    outfit?: CharacterItem;
+    accessory?: CharacterItem;
+    background?: CharacterItem;
+    effect?: CharacterItem;
+  };
+};
+
 const mockActivities: Activity[] = [
   {
     id: '1',
@@ -127,6 +154,138 @@ const mockMeetings: Meeting[] = [
   }
 ];
 
+const initialCharacter: PlayerCharacter = {
+  level: 8,
+  xp: 2450,
+  xpToNextLevel: 3000,
+  totalMeetings: 24,
+  totalHoursOffline: 52,
+  equippedItems: {}
+};
+
+const shopItems: CharacterItem[] = [
+  {
+    id: '1',
+    name: 'Худи уличный',
+    type: 'outfit',
+    icon: 'Shirt',
+    color: '#8B5CF6',
+    pointsCost: 150,
+    levelRequired: 1,
+    description: 'Стильная толстовка для встреч',
+    owned: true,
+    equipped: true
+  },
+  {
+    id: '2',
+    name: 'Деловой костюм',
+    type: 'outfit',
+    icon: 'Briefcase',
+    color: '#1F2937',
+    pointsCost: 300,
+    levelRequired: 5,
+    description: 'Для важных встреч и мероприятий',
+    owned: false,
+    equipped: false
+  },
+  {
+    id: '3',
+    name: 'Спортивная форма',
+    type: 'outfit',
+    icon: 'Dumbbell',
+    color: '#0EA5E9',
+    pointsCost: 200,
+    levelRequired: 3,
+    description: 'Для активных встреч и тренировок',
+    owned: true,
+    equipped: false
+  },
+  {
+    id: '4',
+    name: 'Солнечные очки',
+    type: 'accessory',
+    icon: 'Glasses',
+    color: '#F59E0B',
+    pointsCost: 100,
+    levelRequired: 2,
+    description: 'Добавь стиля своему образу',
+    owned: true,
+    equipped: false
+  },
+  {
+    id: '5',
+    name: 'Корона лидера',
+    type: 'accessory',
+    icon: 'Crown',
+    color: '#EAB308',
+    pointsCost: 500,
+    levelRequired: 10,
+    description: 'Для настоящих лидеров общения',
+    owned: false,
+    equipped: false
+  },
+  {
+    id: '6',
+    name: 'Наушники',
+    type: 'accessory',
+    icon: 'Headphones',
+    color: '#EC4899',
+    pointsCost: 150,
+    levelRequired: 4,
+    description: 'Музыка делает встречи лучше',
+    owned: false,
+    equipped: false
+  },
+  {
+    id: '7',
+    name: 'Город ночью',
+    type: 'background',
+    icon: 'Building2',
+    color: '#6366F1',
+    pointsCost: 250,
+    levelRequired: 6,
+    description: 'Фон ночного мегаполиса',
+    owned: false,
+    equipped: false
+  },
+  {
+    id: '8',
+    name: 'Летний парк',
+    type: 'background',
+    icon: 'Trees',
+    color: '#10B981',
+    pointsCost: 200,
+    levelRequired: 4,
+    description: 'Зелёный уютный парк',
+    owned: false,
+    equipped: false
+  },
+  {
+    id: '9',
+    name: 'Сияние звезды',
+    type: 'effect',
+    icon: 'Sparkles',
+    color: '#FFD700',
+    pointsCost: 400,
+    levelRequired: 8,
+    description: 'Эффект свечения вокруг героя',
+    owned: true,
+    equipped: false
+  },
+  {
+    id: '10',
+    name: 'Огненный ореол',
+    type: 'effect',
+    icon: 'Flame',
+    color: '#F97316',
+    pointsCost: 600,
+    levelRequired: 12,
+    description: 'Огненная аура вокруг персонажа',
+    owned: false,
+    equipped: false
+  }
+];
+
 const availableRewards: Reward[] = [
   {
     id: '1',
@@ -167,13 +326,16 @@ const availableRewards: Reward[] = [
 ];
 
 export default function Index() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'my' | 'chats' | 'rewards' | 'profile'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'my' | 'chats' | 'rewards' | 'profile' | 'shop'>('profile');
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
   const [userActivities, setUserActivities] = useState<Activity[]>([]);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>(mockMeetings);
   const [mindfulnessPoints, setMindfulnessPoints] = useState(380);
   const [activeMeeting, setActiveMeeting] = useState<Meeting | null>(mockMeetings.find(m => m.status === 'active') || null);
+  const [character, setCharacter] = useState<PlayerCharacter>(initialCharacter);
+  const [inventory, setInventory] = useState<CharacterItem[]>(shopItems);
+  const [shopFilter, setShopFilter] = useState<'all' | 'outfit' | 'accessory' | 'background' | 'effect'>('all');
 
   const handleSwipe = (direction: 'left' | 'right') => {
     setSwipeDirection(direction);
@@ -541,21 +703,128 @@ export default function Index() {
         )}
 
         {activeTab === 'profile' && (
-          <div className="flex-1 p-6 overflow-auto">
-            <h1 className="text-2xl font-bold mb-6">Профиль</h1>
+          <div className="flex-1 p-6 overflow-auto pb-24">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold mb-2">Профиль</h1>
+            </div>
             
-            <div className="flex flex-col items-center mb-8">
-              <Avatar className="h-24 w-24 mb-4 gradient-primary">
-                <AvatarFallback className="bg-transparent text-white text-2xl font-bold">
-                  ВИ
-                </AvatarFallback>
-              </Avatar>
-              <h2 className="text-xl font-bold mb-1">Ваше Имя</h2>
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="outline" className="border-primary text-primary">
-                  <Icon name="BadgeCheck" size={14} className="mr-1" />
-                  Верифицирован
-                </Badge>
+            <Card className="mb-6 p-6 gradient-primary text-white border-0">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold mb-1">Ваше Имя</h2>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-white/20 text-white border-0">
+                      <Icon name="BadgeCheck" size={14} className="mr-1" />
+                      Верифицирован
+                    </Badge>
+                    <Badge className="bg-white/20 text-white border-0">
+                      Уровень {character.level}
+                    </Badge>
+                  </div>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="secondary"
+                  onClick={() => setActiveTab('shop')}
+                  className="bg-white/20 hover:bg-white/30 text-white border-0"
+                >
+                  <Icon name="ShoppingBag" size={16} className="mr-2" />
+                  Магазин
+                </Button>
+              </div>
+
+              <div className="relative w-full h-64 rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20">
+                {character.equippedItems.background && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                    <Icon name={character.equippedItems.background.icon} size={120} style={{ color: character.equippedItems.background.color }} />
+                  </div>
+                )}
+                
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative">
+                    {character.equippedItems.effect && (
+                      <div className="absolute inset-0 -m-8 animate-pulse">
+                        <Icon name={character.equippedItems.effect.icon} size={140} style={{ color: character.equippedItems.effect.color }} className="opacity-40" />
+                      </div>
+                    )}
+                    
+                    <div className="relative w-32 h-32 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-4 border-white/30">
+                      <Icon 
+                        name={character.equippedItems.outfit?.icon || 'User'} 
+                        size={64} 
+                        style={{ color: character.equippedItems.outfit?.color || '#ffffff' }}
+                      />
+                    </div>
+                    
+                    {character.equippedItems.accessory && (
+                      <div className="absolute -top-2 -right-2">
+                        <div className="w-12 h-12 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center border-2 border-white/40">
+                          <Icon name={character.equippedItems.accessory.icon} size={24} style={{ color: character.equippedItems.accessory.color }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="opacity-90">Опыт до {character.level + 1} уровня</span>
+                    <span className="font-semibold">{character.xp} / {character.xpToNextLevel}</span>
+                  </div>
+                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-white transition-all duration-500"
+                      style={{ width: `${(character.xp / character.xpToNextLevel) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 pt-3">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{character.totalMeetings}</div>
+                    <div className="text-xs opacity-80">Встреч</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{character.totalHoursOffline}ч</div>
+                    <div className="text-xs opacity-80">Без телефона</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">{mindfulnessPoints}</div>
+                    <div className="text-xs opacity-80">Очков</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="mb-4">
+              <h2 className="text-lg font-bold mb-3">Экипированные вещи</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(character.equippedItems).map(([slot, item]) => {
+                  if (!item) return null;
+                  return (
+                    <Card key={slot} className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: `${item.color}20` }}
+                        >
+                          <Icon name={item.icon} size={20} style={{ color: item.color }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{item.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+                {Object.keys(character.equippedItems).length === 0 && (
+                  <div className="col-span-2 text-center py-8 text-muted-foreground text-sm">
+                    Ничего не экипировано. Зайди в магазин!
+                  </div>
+                )}
               </div>
             </div>
 
@@ -599,19 +868,152 @@ export default function Index() {
                 <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
               </Card>
             </div>
+          </div>
+        )}
 
-            <div className="mt-8 p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg">
+        {activeTab === 'shop' && (
+          <div className="flex-1 p-6 overflow-auto pb-24">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold mb-1">Магазин</h1>
+                <p className="text-sm text-muted-foreground">Прокачай своего персонажа</p>
+              </div>
+              <Button variant="outline" onClick={() => setActiveTab('profile')}>
+                <Icon name="ArrowLeft" size={16} className="mr-2" />
+                Назад
+              </Button>
+            </div>
+
+            <div className="mb-6 gradient-primary rounded-xl p-4 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon name="Sparkles" size={20} />
+                  <span className="font-semibold">Баланс очков</span>
+                </div>
+                <div className="text-2xl font-bold">{mindfulnessPoints}</div>
+              </div>
+            </div>
+
+            <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
+              {(['all', 'outfit', 'accessory', 'background', 'effect'] as const).map(filter => (
+                <Button
+                  key={filter}
+                  size="sm"
+                  variant={shopFilter === filter ? 'default' : 'outline'}
+                  onClick={() => setShopFilter(filter)}
+                  className={shopFilter === filter ? 'gradient-primary' : ''}
+                >
+                  {filter === 'all' ? 'Всё' : 
+                   filter === 'outfit' ? 'Одежда' :
+                   filter === 'accessory' ? 'Аксессуары' :
+                   filter === 'background' ? 'Фоны' : 'Эффекты'}
+                </Button>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              {inventory
+                .filter(item => shopFilter === 'all' || item.type === shopFilter)
+                .map(item => (
+                  <Card key={item.id} className={`p-4 transition-all ${item.equipped ? 'border-2 border-primary shadow-md' : ''}`}>
+                    <div className="flex items-start gap-3">
+                      <div 
+                        className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${item.color}15`, border: `2px solid ${item.color}30` }}
+                      >
+                        <Icon name={item.icon} size={32} style={{ color: item.color }} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1">
+                            <h3 className="font-semibold mb-1">{item.name}</h3>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              {item.description}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs capitalize">
+                                {item.type === 'outfit' ? 'Одежда' :
+                                 item.type === 'accessory' ? 'Аксессуар' :
+                                 item.type === 'background' ? 'Фон' : 'Эффект'}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                <Icon name="TrendingUp" size={10} className="mr-1" />
+                                Ур. {item.levelRequired}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center gap-1">
+                            <Icon name="Sparkles" size={14} className="text-primary" />
+                            <span className="text-sm font-semibold">{item.pointsCost} очков</span>
+                          </div>
+                          
+                          {item.equipped ? (
+                            <Badge className="gradient-primary text-white border-0">
+                              <Icon name="Check" size={12} className="mr-1" />
+                              Экипировано
+                            </Badge>
+                          ) : item.owned ? (
+                            <Button 
+                              size="sm"
+                              onClick={() => {
+                                const newEquipped = { ...character.equippedItems };
+                                newEquipped[item.type] = item;
+                                setCharacter({ ...character, equippedItems: newEquipped });
+                                setInventory(inventory.map(i => ({
+                                  ...i,
+                                  equipped: i.id === item.id ? true : (i.type === item.type ? false : i.equipped)
+                                })));
+                              }}
+                            >
+                              Надеть
+                            </Button>
+                          ) : character.level < item.levelRequired ? (
+                            <Button size="sm" disabled>
+                              <Icon name="Lock" size={14} className="mr-1" />
+                              Закрыто
+                            </Button>
+                          ) : mindfulnessPoints < item.pointsCost ? (
+                            <Button size="sm" disabled>
+                              Мало очков
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm"
+                              className="gradient-primary"
+                              onClick={() => {
+                                setMindfulnessPoints(prev => prev - item.pointsCost);
+                                setInventory(inventory.map(i => 
+                                  i.id === item.id ? { ...i, owned: true } : i
+                                ));
+                              }}
+                            >
+                              Купить
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+            </div>
+
+            <Card className="mt-6 p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
               <div className="flex items-start gap-3">
                 <Icon name="Info" size={20} className="text-primary mt-0.5" />
                 <div>
-                  <p className="font-semibold mb-1">О верификации</p>
-                  <p className="text-sm text-muted-foreground">
-                    Верифицированные пользователи подтвердили свою личность и прошли проверку безопасности.
-                    Это повышает доверие в сообществе.
-                  </p>
+                  <p className="font-semibold mb-1">Как получать очки?</p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Встречайся с друзьями без телефонов</li>
+                    <li>• Повышай уровень персонажа</li>
+                    <li>• Открывай новые предметы и эффекты</li>
+                  </ul>
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
